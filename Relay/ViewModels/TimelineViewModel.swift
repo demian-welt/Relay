@@ -593,9 +593,13 @@ final class TimelineViewModel {
     func send(text: String, inReplyTo eventId: String?, mentionedUserIds: [String]) async {
         let mentions = mentionsParam(mentionedUserIds)
         if let eventId {
-            try? await client.messageSender?.reply(
-                roomID, to: EventId(unchecked: eventId), body: text,
-                mentions: mentions)
+            do {
+                try await client.messageSender?.reply(
+                    roomID, to: EventId(unchecked: eventId), body: text,
+                    mentions: mentions)
+            } catch {
+                errorReporter.report(.messageSendFailed(error.localizedDescription))
+            }
             return
         }
         await client.messageSender?.sendText(roomID, text, mentions: mentions)
@@ -696,8 +700,12 @@ final class TimelineViewModel {
 
     /// Redact a message (cancels unsent echoes).
     func redact(messageId: String, reason: String? = nil) async {
-        try? await client.messageSender?.redact(
-            roomID, eventId: EventId(unchecked: messageId), reason: reason)
+        do {
+            try await client.messageSender?.redact(
+                roomID, eventId: EventId(unchecked: messageId), reason: reason)
+        } catch {
+            errorReporter.report(.redactFailed(error.localizedDescription))
+        }
     }
 
     /// Pin a message.

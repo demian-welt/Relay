@@ -302,26 +302,21 @@ private struct BrowseRoomsRow: View {
 
     private var subtitle: some View {
         Group {
-            if let topic = room.topic, !topic.isEmpty {
-                Text(topic) + memberSuffix
-            } else if let alias = room.canonicalAlias {
-                Text(alias) + memberSuffix
+            if let label = (room.topic.flatMap { $0.isEmpty ? nil : $0 }) ?? room.canonicalAlias {
+                if room.numJoinedMembers > 0 {
+                    Text("\(label) · \(room.numJoinedMembers, format: .number) members")
+                } else {
+                    Text(label)
+                }
+            } else if room.numJoinedMembers > 0 {
+                Text("\(room.numJoinedMembers, format: .number) members")
             } else {
-                memberSuffix
+                Text("")
             }
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
         .lineLimit(1)
-    }
-
-    /// The member count tucked onto the subtitle line (`Topic · 35,305 members`).
-    private var memberSuffix: Text {
-        if room.numJoinedMembers > 0 {
-            Text(" · \(room.numJoinedMembers, format: .number) members")
-        } else {
-            Text("")
-        }
     }
 
     @ViewBuilder

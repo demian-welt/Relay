@@ -427,7 +427,7 @@ final class RelayClient {
                         // Best effort: settle any debounced crypto
                         // writes so a quit inside the loss window
                         // cannot drop ratchet state.
-                        Task { await self?.flushCryptoState() }
+                        _ = Task { await self?.flushCryptoState() }
                     } },
             // The Labs sliding-sync toggle writes UserDefaults directly;
             // restart the loop when the preference changes mid-session.
@@ -2964,8 +2964,8 @@ final class RelayClient {
         storeWriter = writer
         let reader = MatrixStoreReader(modelContainer: container, localUser: userId)
         storeReader = reader
-        roomIndex = await RoomIndexBuilder(container: container, localUser: userId)
-        messageSender = await MessageSender(
+        roomIndex =  RoomIndexBuilder(container: container, localUser: userId)
+        messageSender =  MessageSender(
             messages: client.messages, media: client.media,
             rooms: client.rooms, roomState: client.roomState,
             accountData: client.accountData, roomCrypto: client.roomCrypto,
