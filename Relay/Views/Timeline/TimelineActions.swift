@@ -72,6 +72,10 @@ final class TimelineActions: Equatable {
     /// An empty selection retracts the vote.
     var vote: (String, [String]) -> Void = { _, _ in }
 
+    /// Ends a poll. Parameter: poll event ID. Only the poll creator's
+    /// end takes effect.
+    var endPoll: (String) -> Void = { _ in }
+
     /// Scrolls to a replied-to message by event ID.
     var tapReply: (String) -> Void = { _ in }
 
@@ -159,6 +163,9 @@ final class TimelineActions: Equatable {
         }
         self.vote = { pollId, answers in
             Task { await viewModel.vote(pollId: pollId, answers: answers) }
+        }
+        self.endPoll = { pollId in
+            Task { await viewModel.endPoll(pollId: pollId) }
         }
         self.tapReply = { eventID in
             if let message = viewModel.messages.first(where: { $0.eventId.value == eventID }) {

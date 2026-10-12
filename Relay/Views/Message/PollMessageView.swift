@@ -32,6 +32,9 @@ struct PollMessageView: View {
     /// Called with the new selection of answer IDs. An empty array retracts.
     let onVote: ([String]) -> Void
 
+    /// Ends the poll. The parent binds the poll event ID.
+    let onEndPoll: () -> Void
+
     @AppStorage("appearance.coloredBubbles") private var coloredBubbles = false
 
     @Environment(\.timelineActions) private var actions
@@ -45,6 +48,10 @@ struct PollMessageView: View {
 
     private var canVote: Bool {
         !poll.isEnded && actions.permissions?.canSendMessages == true
+    }
+
+    private var canEndPoll: Bool {
+        !poll.isEnded && actions.currentUserID == senderID
     }
 
     private var showResults: Bool {
@@ -118,10 +125,23 @@ struct PollMessageView: View {
                 }
             }
 
-            if let footer {
-                Text(footer)
-                    .scaledChromeFont(.caption1)
-                    .foregroundStyle(style.usesWhiteText ? .white.opacity(0.7) : .secondary)
+            if footer != nil || canEndPoll {
+                HStack {
+                    if let footer {
+                        Text(footer)
+                            .scaledChromeFont(.caption1)
+                            .foregroundStyle(style.usesWhiteText ? .white.opacity(0.7) : .secondary)
+                    }
+                    Spacer()
+                    if canEndPoll {
+                        Button("End poll", systemImage: "stop.circle") {
+                            onEndPoll()
+                        }
+                        .buttonStyle(.plain)
+                        .scaledChromeFont(.caption1)
+                        .foregroundStyle(style.usesWhiteText ? .white.opacity(0.85) : .secondary)
+                    }
+                }
             }
         }
         .padding(.horizontal, BubbleStyle.horizontalPadding)
@@ -330,7 +350,8 @@ private func pollPreviewActions() -> TimelineActions {
             question: "Lunch?", answers: pollPreviewAnswers, totalVotes: 4),
         senderID: "@alice:matrix.org",
         isOutgoing: false,
-        onVote: { _ in }
+        onVote: { _ in },
+        onEndPoll: {}
     )
     .environment(\.timelineActions, pollPreviewActions())
     .padding()
@@ -344,7 +365,8 @@ private func pollPreviewActions() -> TimelineActions {
             ownSelections: ["a1"]),
         senderID: "@me:matrix.org",
         isOutgoing: true,
-        onVote: { _ in }
+        onVote: { _ in },
+        onEndPoll: {}
     )
     .environment(\.timelineActions, pollPreviewActions())
     .padding()
@@ -358,7 +380,8 @@ private func pollPreviewActions() -> TimelineActions {
             kind: .undisclosed, totalVotes: 4, ownSelections: ["a2"]),
         senderID: "@alice:matrix.org",
         isOutgoing: false,
-        onVote: { _ in }
+        onVote: { _ in },
+        onEndPoll: {}
     )
     .environment(\.timelineActions, pollPreviewActions())
     .padding()
@@ -372,7 +395,8 @@ private func pollPreviewActions() -> TimelineActions {
             ownSelections: ["a2"], isEnded: true, winningAnswerIds: ["a1"]),
         senderID: "@alice:matrix.org",
         isOutgoing: false,
-        onVote: { _ in }
+        onVote: { _ in },
+        onEndPoll: {}
     )
     .environment(\.timelineActions, pollPreviewActions())
     .padding()
@@ -386,7 +410,8 @@ private func pollPreviewActions() -> TimelineActions {
             maxSelections: 2, totalVotes: 4, ownSelections: ["a1", "a3"]),
         senderID: "@alice:matrix.org",
         isOutgoing: false,
-        onVote: { _ in }
+        onVote: { _ in },
+        onEndPoll: {}
     )
     .environment(\.timelineActions, pollPreviewActions())
     .padding()

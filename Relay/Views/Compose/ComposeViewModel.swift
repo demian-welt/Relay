@@ -64,8 +64,17 @@ final class ComposeViewModel {
     /// Whether the file picker sheet is presented.
     var isShowingFilePicker = false
 
+    /// Whether the photo/image picker sheet is presented.
+    var isShowingImagePicker = false
+
     /// Whether the GIF picker popover is presented.
     var isShowingGIFPicker = false
+
+    /// Whether the poll composer sheet is presented.
+    var isShowingPollComposer = false
+
+    /// Whether the attachment options popover is presented.
+    var isShowingAttachmentMenu = false
 
     /// Whether a drag operation is currently hovering over the compose bar.
     var isDropTargeted = false
@@ -88,6 +97,12 @@ final class ComposeViewModel {
 
     /// UTTypes accepted by the file picker and drop target.
     static let supportedTypes: [UTType] = [.image, .movie, .audio, .item]
+
+    /// UTTypes for the Files menu entry (any file).
+    static let supportedFileTypes: [UTType] = [.item]
+
+    /// UTTypes for the Images menu entry (photos and videos).
+    static let supportedImageTypes: [UTType] = [.image, .movie]
 
     // MARK: - Computed Properties
 

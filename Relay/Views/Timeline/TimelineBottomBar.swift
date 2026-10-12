@@ -76,6 +76,12 @@ struct TimelineBottomBar: View {
                 ) {
                     onSendWillScroll()
                 }
+            },
+            onPollCreated: { question, options, maxSelections, kind in
+                await viewModel.startPoll(
+                    question: question, options: options,
+                    maxSelections: maxSelections, kind: kind)
+                onSendWillScroll()
             }
         )
         .padding(.horizontal, 16)

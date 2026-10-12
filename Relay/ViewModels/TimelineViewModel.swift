@@ -739,6 +739,29 @@ final class TimelineViewModel {
             roomID, poll: EventId(unchecked: pollId), answers: answers)
     }
 
+    /// End a poll created by the local user. Failures surface through
+    /// the error reporter; sync confirms the end in the background.
+    func endPoll(pollId: String) async {
+        do {
+            try await client.messageSender?.endPoll(
+                roomID, poll: EventId(unchecked: pollId))
+        } catch {
+            errorReporter.report(.messageSendFailed(error.localizedDescription))
+        }
+    }
+
+    /// Start a poll from the compose bar's poll composer. Failures surface
+    /// through the error reporter; sync confirms the event in the background.
+    func startPoll(question: String, options: [String], maxSelections: Int, kind: PollKind) async {
+        do {
+            try await client.startPoll(
+                roomId: roomID, question: question, options: options,
+                maxSelections: maxSelections, kind: kind)
+        } catch {
+            errorReporter.report(.messageSendFailed(error.localizedDescription))
+        }
+    }
+
     /// Edit own message text.
     func edit(messageId: String, newText: String, mentionedUserIds: [String]) async {
         do {

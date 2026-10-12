@@ -19,7 +19,7 @@ import UniformTypeIdentifiers
 /// The message composition bar at the bottom of the timeline.
 ///
 /// ``ComposeBar`` presents the text field with inline mention pills,
-/// attachment staging, reply/edit banners, and action buttons (attach, GIF).
+/// attachment staging, reply/edit banners, and the attachment menu.
 /// All compose state lives in a ``ComposeViewModel`` passed via `@Bindable`.
 struct ComposeBar: View {
     @Bindable var compose: ComposeViewModel
@@ -32,6 +32,9 @@ struct ComposeBar: View {
 
     /// Called when the user selects a GIF from the picker.
     var onGIFSelected: (GIFSearchResult) async -> Void
+
+    /// Called with a validated poll (question, options, max selections, kind).
+    var onPollCreated: (String, [String], Int, PollKind) async -> Void
 
     @Environment(\.errorReporter) private var errorReporter
     @State private var pasteHandler = PasteHandler()
@@ -49,11 +52,28 @@ struct ComposeBar: View {
         .animation(.spring(duration: 0.35, bounce: 0.15), value: compose.editingMessage != nil)
         .fileImporter(
             isPresented: $compose.isShowingFilePicker,
-            allowedContentTypes: ComposeViewModel.supportedTypes,
+            allowedContentTypes: ComposeViewModel.supportedFileTypes,
             allowsMultipleSelection: true
         ) { result in
             if case .success(let urls) = result, !urls.isEmpty {
                 onAttach(urls)
+            }
+        }
+        .fileImporter(
+            isPresented: $compose.isShowingImagePicker,
+            allowedContentTypes: ComposeViewModel.supportedImageTypes,
+            allowsMultipleSelection: true
+        ) { result in
+            if case .success(let urls) = result, !urls.isEmpty {
+                onAttach(urls)
+            }
+        }
+        .sheet(isPresented: $compose.isShowingPollComposer) {
+            PollComposerView {
+                compose.isShowingPollComposer = false
+            } onCreate: { question, options, maxSelections, kind in
+                compose.isShowingPollComposer = false
+                Task { await onPollCreated(question, options, maxSelections, kind) }
             }
         }
         .onDrop(
@@ -209,39 +229,107 @@ private struct ComposeBarContent: View {
     }
 }
 
-/// The attach and GIF buttons on the right side of the compose bar.
+/// The attachment popover and GIF button on the right side of the compose bar.
 private struct ComposeBarActions: View {
     @Bindable var compose: ComposeViewModel
     var onGIFSelected: (GIFSearchResult) async -> Void
 
     var body: some View {
-        Button {
-            compose.isShowingFilePicker = true
-        } label: {
-            Image(systemName: "paperclip")
-                .font(.system(size: 15, weight: .regular))
-                .frame(width: 36, height: 36)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(in: .circle)
+        HStack(spacing: 8) {
+            Button {
+                compose.isShowingAttachmentMenu = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .regular))
+                    .frame(width: 36, height: 36)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Attachments")
+            .glassEffect(in: .circle)
+            .popover(isPresented: $compose.isShowingAttachmentMenu, arrowEdge: .top) {
+                AttachmentMenuView(compose: compose)
+            }
 
-        Button {
-            compose.isShowingGIFPicker = true
-        } label: {
-            Image(systemName: "number")
-                .font(.system(size: 15, weight: .regular))
-                .frame(width: 36, height: 36)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(in: .circle)
-        .popover(isPresented: $compose.isShowingGIFPicker, arrowEdge: .top) {
-            GIFPickerView { gif in
-                compose.isShowingGIFPicker = false
-                Task { await onGIFSelected(gif) }
+            Button {
+                compose.isShowingGIFPicker = true
+            } label: {
+                Image(systemName: "number")
+                    .font(.system(size: 15, weight: .regular))
+                    .frame(width: 36, height: 36)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("GIFs")
+            .glassEffect(in: .circle)
+            .popover(isPresented: $compose.isShowingGIFPicker, arrowEdge: .top) {
+                GIFPickerView { gif in
+                    compose.isShowingGIFPicker = false
+                    Task { await onGIFSelected(gif) }
+                }
             }
         }
+    }
+}
+
+/// The attachment options shown in the compose bar's plus-button popover.
+///
+/// A custom popover (rather than a `Menu`) so each option renders an
+/// explicit icon alongside its label.
+private struct AttachmentMenuView: View {
+    @Bindable var compose: ComposeViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            AttachmentMenuRow(title: "Files", systemImage: "folder") {
+                compose.isShowingAttachmentMenu = false
+                compose.isShowingFilePicker = true
+            }
+            AttachmentMenuRow(title: "Images", systemImage: "photo") {
+                compose.isShowingAttachmentMenu = false
+                compose.isShowingImagePicker = true
+            }
+            AttachmentMenuRow(title: "GIFs", systemImage: "number") {
+                compose.isShowingAttachmentMenu = false
+                compose.isShowingGIFPicker = true
+            }
+            AttachmentMenuRow(title: "Poll", systemImage: "chart.bar") {
+                compose.isShowingAttachmentMenu = false
+                compose.isShowingPollComposer = true
+            }
+        }
+        .padding(6)
+        .frame(minWidth: 180)
+    }
+}
+
+/// One icon-plus-label row in the attachment options popover.
+private struct AttachmentMenuRow: View {
+    var title: String
+    var systemImage: String
+    var action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+                Text(title)
+                Spacer(minLength: 16)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .contentShape(.rect(cornerRadius: 6))
+            .background(
+                isHovering ? Color.primary.opacity(0.08) : .clear,
+                in: .rect(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
     }
 }
 
@@ -267,7 +355,8 @@ private let previewMembers: [RoomMemberDetails] = [
         }(),
         onSend: {},
         onAttach: { _ in },
-        onGIFSelected: { _ in }
+        onGIFSelected: { _ in },
+        onPollCreated: { _, _, _, _ in }
     )
     .frame(width: 400)
 }
@@ -282,7 +371,8 @@ private let previewMembers: [RoomMemberDetails] = [
         }(),
         onSend: {},
         onAttach: { _ in },
-        onGIFSelected: { _ in }
+        onGIFSelected: { _ in },
+        onPollCreated: { _, _, _, _ in }
     )
     .frame(width: 400)
 }
@@ -310,7 +400,8 @@ private let previewMembers: [RoomMemberDetails] = [
         }(),
         onSend: {},
         onAttach: { _ in },
-        onGIFSelected: { _ in }
+        onGIFSelected: { _ in },
+        onPollCreated: { _, _, _, _ in }
     )
     .frame(width: 500)
 }
@@ -328,7 +419,8 @@ private let previewMembers: [RoomMemberDetails] = [
             }(),
             onSend: {},
             onAttach: { _ in },
-            onGIFSelected: { _ in }
+            onGIFSelected: { _ in },
+            onPollCreated: { _, _, _, _ in }
         )
         .environment(PreviewFixtures.previewClient())
         .frame(width: 400)

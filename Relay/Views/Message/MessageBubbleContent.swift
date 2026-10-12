@@ -206,7 +206,8 @@ struct MessageBubbleContent: View {
                 poll: poll,
                 senderID: message.sender.value,
                 isOutgoing: isOutgoing,
-                onVote: { actions.vote(message.eventId.value, $0) }
+                onVote: { actions.vote(message.eventId.value, $0) },
+                onEndPoll: { actions.endPoll(message.eventId.value) }
             )
             .clipShape(BubbleStyle.shape)
 
