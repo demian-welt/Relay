@@ -74,6 +74,8 @@ struct MessageBubbleContent: View {
             // Stickers render as images when downloadable; without a URL
             // they fall through to the special-content placeholder below.
             imageContent
+        } else if case .poll(let poll) = message.kind {
+            pollContent(poll)
         } else if message.kind.isSpecialType {
             specialContent
         } else if isEmojiOnly {
@@ -196,6 +198,24 @@ struct MessageBubbleContent: View {
         }
     }
 
+    // MARK: - Poll Content
+
+    private func pollContent(_ poll: PollSummary) -> some View {
+        VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 2) {
+            PollMessageView(
+                poll: poll,
+                senderID: message.sender.value,
+                isOutgoing: isOutgoing,
+                onVote: { actions.vote(message.eventId.value, $0) }
+            )
+            .clipShape(BubbleStyle.shape)
+
+            if case .failed(let reason) = message.sendState {
+                sendFailedLabel(reason)
+            }
+        }
+    }
+
     // MARK: - Emoji-Only Content
 
     /// Whether this text message contains only emoji (up to a reasonable count
@@ -280,7 +300,6 @@ struct MessageBubbleContent: View {
         case .file: "doc"
         case .location, .liveLocation: "location"
         case .sticker: "face.smiling"
-        case .poll: "chart.bar"
         case .redacted: "trash"
         case .unableToDecrypt: "lock"
         case .state, .profileChange, .callEvent: "info.circle"
@@ -436,6 +455,20 @@ struct MessageBubbleContent: View {
                 kind: .file(
                     body: "report.pdf", url: "mxc://matrix.org/file1",
                     info: MediaInfo(mimeType: "application/pdf", size: 1_250_000))
+            ),
+            isOutgoing: false
+        )
+        MessageBubbleContent(
+            message: PreviewFixtures.event(
+                "5", sender: "@bob:matrix.org", displayName: "Bob",
+                body: "Lunch?",
+                kind: .poll(PollSummary(
+                    question: "Lunch?",
+                    answers: [
+                        PollSummary.Answer(id: "a1", text: "Pizza", voteCount: 2),
+                        PollSummary.Answer(id: "a2", text: "Tacos", voteCount: 1),
+                    ],
+                    totalVotes: 3, ownSelections: ["a1"]))
             ),
             isOutgoing: false
         )

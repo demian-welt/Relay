@@ -102,6 +102,10 @@ struct SystemEventView: View {
             "person.text.rectangle"
         case .callEvent:
             "phone.fill"
+        case .pollEnd:
+            "chart.bar.xaxis"
+        case .verificationRequest:
+            "checkmark.shield"
         default:
             "info.circle"
         }

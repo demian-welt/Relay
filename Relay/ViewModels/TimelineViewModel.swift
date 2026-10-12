@@ -732,6 +732,13 @@ final class TimelineViewModel {
             roomID, target: EventId(unchecked: messageId), key: key)
     }
 
+    /// Cast, change, or retract (empty `answers`) a vote on a poll.
+    /// The count updates optimistically; sync confirms in the background.
+    func vote(pollId: String, answers: [String]) async {
+        await client.messageSender?.vote(
+            roomID, poll: EventId(unchecked: pollId), answers: answers)
+    }
+
     /// Edit own message text.
     func edit(messageId: String, newText: String, mentionedUserIds: [String]) async {
         do {

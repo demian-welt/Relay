@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3B20B060307C97C900B1205D /* MatrixKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3B20B05F307C97C900B1205D /* MatrixKit */; };
+		3B20B062307C97C900B1205D /* MatrixKitCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 3B20B061307C97C900B1205D /* MatrixKitCrypto */; };
+		3B20B064307C97C900B1205D /* MatrixKitSwiftData in Frameworks */ = {isa = PBXBuildFile; productRef = 3B20B063307C97C900B1205D /* MatrixKitSwiftData */; };
+		3B20B066307C97C900B1205D /* MatrixRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3B20B065307C97C900B1205D /* MatrixRTC */; };
 		3B3241B430525E06008DEDC6 /* EmojiKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3BEM00062FC10006001F0EA1 /* EmojiKit */; };
 		3B3B82C42FC69A9F008DCEDC /* RelayShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3B3B82B82FC69A9F008DCEDC /* RelayShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3B3B82D52FC69C2F008DCEDC /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B3B82D42FC69C2F008DCEDC /* Intents.framework */; };
@@ -16,10 +20,6 @@
 		3BC95F0E30773B9A0037FC52 /* MatrixKitCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC95F0D30773B9A0037FC52 /* MatrixKitCrypto */; };
 		3BC95F1030773B9A0037FC52 /* MatrixKitSwiftData in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC95F0F30773B9A0037FC52 /* MatrixKitSwiftData */; };
 		3BC95F1230773B9A0037FC52 /* MatrixRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC95F1130773B9A0037FC52 /* MatrixRTC */; };
-		3BC9625130787A1B0037FC52 /* MatrixKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC9625030787A1B0037FC52 /* MatrixKit */; };
-		3BC9625330787A1B0037FC52 /* MatrixKitCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC9625230787A1B0037FC52 /* MatrixKitCrypto */; };
-		3BC9625530787A1B0037FC52 /* MatrixKitSwiftData in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC9625430787A1B0037FC52 /* MatrixKitSwiftData */; };
-		3BC9625730787A1B0037FC52 /* MatrixRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3BC9625630787A1B0037FC52 /* MatrixRTC */; };
 		DFDAFCB22FA2C56400A27353 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = DFDAFCB12FA2C56400A27353 /* LiveKit */; };
 /* End PBXBuildFile section */
 
@@ -146,13 +146,13 @@
 				3BC95F1230773B9A0037FC52 /* MatrixRTC in Frameworks */,
 				3B590FD5305602AF0014C5D7 /* RelayShared in Frameworks */,
 				3B3241B430525E06008DEDC6 /* EmojiKit in Frameworks */,
-				3BC9625730787A1B0037FC52 /* MatrixRTC in Frameworks */,
-				3BC9625330787A1B0037FC52 /* MatrixKitCrypto in Frameworks */,
-				3BC9625530787A1B0037FC52 /* MatrixKitSwiftData in Frameworks */,
+				3B20B066307C97C900B1205D /* MatrixRTC in Frameworks */,
+				3B20B062307C97C900B1205D /* MatrixKitCrypto in Frameworks */,
+				3B20B064307C97C900B1205D /* MatrixKitSwiftData in Frameworks */,
 				3BC95F0C30773B9A0037FC52 /* MatrixKit in Frameworks */,
 				DFDAFCB22FA2C56400A27353 /* LiveKit in Frameworks */,
 				3BC95F1030773B9A0037FC52 /* MatrixKitSwiftData in Frameworks */,
-				3BC9625130787A1B0037FC52 /* MatrixKit in Frameworks */,
+				3B20B060307C97C900B1205D /* MatrixKit in Frameworks */,
 				3BC95F0E30773B9A0037FC52 /* MatrixKitCrypto in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -269,10 +269,10 @@
 				3BC95F0D30773B9A0037FC52 /* MatrixKitCrypto */,
 				3BC95F0F30773B9A0037FC52 /* MatrixKitSwiftData */,
 				3BC95F1130773B9A0037FC52 /* MatrixRTC */,
-				3BC9625030787A1B0037FC52 /* MatrixKit */,
-				3BC9625230787A1B0037FC52 /* MatrixKitCrypto */,
-				3BC9625430787A1B0037FC52 /* MatrixKitSwiftData */,
-				3BC9625630787A1B0037FC52 /* MatrixRTC */,
+				3B20B05F307C97C900B1205D /* MatrixKit */,
+				3B20B061307C97C900B1205D /* MatrixKitCrypto */,
+				3B20B063307C97C900B1205D /* MatrixKitSwiftData */,
+				3B20B065307C97C900B1205D /* MatrixRTC */,
 			);
 			productName = Relay;
 			productReference = 3B4AFD892F638A35001F0EA1 /* Relay.app */;
@@ -313,7 +313,7 @@
 				3BRS00012FE10001001F0EA1 /* XCLocalSwiftPackageReference "Packages/RelayShared" */,
 				3BLK00032FD10003001F0EA1 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 				3BEM00072FD10007001F0EA1 /* XCRemoteSwiftPackageReference "EmojiKit" */,
-				3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */,
+				3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3B4AFD8A2F638A35001F0EA1 /* Products */;
@@ -803,7 +803,7 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */ = {
+		3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/subpop/MatrixKit";
 			requirement = {
@@ -830,6 +830,26 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		3B20B05F307C97C900B1205D /* MatrixKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */;
+			productName = MatrixKit;
+		};
+		3B20B061307C97C900B1205D /* MatrixKitCrypto */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */;
+			productName = MatrixKitCrypto;
+		};
+		3B20B063307C97C900B1205D /* MatrixKitSwiftData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */;
+			productName = MatrixKitSwiftData;
+		};
+		3B20B065307C97C900B1205D /* MatrixRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3B20B05E307C97C900B1205D /* XCRemoteSwiftPackageReference "MatrixKit" */;
+			productName = MatrixRTC;
+		};
 		3BC95F0B30773B9A0037FC52 /* MatrixKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MatrixKit;
@@ -844,26 +864,6 @@
 		};
 		3BC95F1130773B9A0037FC52 /* MatrixRTC */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = MatrixRTC;
-		};
-		3BC9625030787A1B0037FC52 /* MatrixKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */;
-			productName = MatrixKit;
-		};
-		3BC9625230787A1B0037FC52 /* MatrixKitCrypto */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */;
-			productName = MatrixKitCrypto;
-		};
-		3BC9625430787A1B0037FC52 /* MatrixKitSwiftData */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */;
-			productName = MatrixKitSwiftData;
-		};
-		3BC9625630787A1B0037FC52 /* MatrixRTC */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3BC9624F30787A1B0037FC52 /* XCRemoteSwiftPackageReference "MatrixKit" */;
 			productName = MatrixRTC;
 		};
 		3BEM00062FC10006001F0EA1 /* EmojiKit */ = {

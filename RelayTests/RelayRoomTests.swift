@@ -49,6 +49,30 @@ struct RelayRoomTests {
             ])
     }
 
+    private func pollEvent(id: String, sender: String, question: String) -> MessageEvent {
+        MessageEvent(
+            type: "m.poll.start",
+            eventId: EventId(unchecked: id),
+            sender: UserId(unchecked: sender),
+            roomId: RoomId(unchecked: "!test:example.com"),
+            originServerTs: 3_000,
+            content: [
+                "m.poll.start": .object([
+                    "kind": .string("m.poll.disclosed"),
+                    "max_selections": .int(1),
+                    "answers": .array([
+                        .object([
+                            "id": .string("a1"),
+                            "org.matrix.msc1767.text": .string("Pizza"),
+                        ]),
+                    ]),
+                    "question": .object([
+                        "org.matrix.msc1767.text": .string(question),
+                    ]),
+                ]),
+            ])
+    }
+
     private func reactionEvent(
         id: String, target: String, key: String, sender: String
     ) -> MessageEvent {
@@ -134,6 +158,20 @@ struct RelayRoomTests {
         #expect(row.highlightCount == 1)
         #expect(row.parentSpaceIds == ["!space:example.com"])
         #expect(!row.isArchived)
+    }
+
+    @Test func rowMappingPreviewsPollQuestion() {
+        var room = self.room()
+        room.memberDetails = [
+            UserId(unchecked: "@alice:example.com"): MemberContent(
+                membership: .join, displayname: "Alice"),
+        ]
+        room.latestMessage = pollEvent(
+            id: "$p1", sender: "@alice:example.com", question: "Lunch?")
+        let row = RoomRowData.from(room: room, isMuted: false)
+        #expect(row.lastMessage == "Lunch?")
+        #expect(row.lastMessageAuthor == "Alice")
+        #expect(row.lastMessageTimestamp != nil)
     }
 
     @Test func rowMappingMarksSuccessorAsArchived() {

@@ -68,6 +68,10 @@ final class TimelineActions: Equatable {
     /// Toggles a reaction on a message. Parameters: (event ID, emoji key).
     var toggleReaction: (String, String) -> Void = { _, _ in }
 
+    /// Casts a poll vote. Parameters: (poll event ID, selected answer IDs).
+    /// An empty selection retracts the vote.
+    var vote: (String, [String]) -> Void = { _, _ in }
+
     /// Scrolls to a replied-to message by event ID.
     var tapReply: (String) -> Void = { _ in }
 
@@ -152,6 +156,9 @@ final class TimelineActions: Equatable {
     ) {
         self.toggleReaction = { messageId, key in
             Task { await viewModel.toggleReaction(messageId: messageId, key: key) }
+        }
+        self.vote = { pollId, answers in
+            Task { await viewModel.vote(pollId: pollId, answers: answers) }
         }
         self.tapReply = { eventID in
             if let message = viewModel.messages.first(where: { $0.eventId.value == eventID }) {

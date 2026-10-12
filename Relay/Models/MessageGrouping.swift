@@ -222,10 +222,11 @@ extension ObservableTimelineEvent {
     /// Whether this event renders as a system row (state, profile, call).
     var isSystemEvent: Bool {
         switch kind {
-        case .state, .profileChange, .callEvent:
+        case .state, .profileChange, .callEvent, .pollEnd, .verificationRequest:
             return true
         case .text, .emote, .notice, .image, .video, .audio, .file,
-            .location, .liveLocation, .sticker, .poll, .redacted, .unableToDecrypt, .unknown:
+            .location, .liveLocation, .sticker, .poll, .serverNotice,
+            .redacted, .unableToDecrypt, .unknown:
             return false
         }
     }
@@ -242,11 +243,14 @@ extension ObservableTimelineEvent {
             .location(let body), .liveLocation(let body),
             .sticker(let body, _, _):
             return body
-        case .poll(let question):
-            return question
+        case .poll(let poll):
+            return poll.question
         case .state(_, let description), .profileChange(let description),
-            .callEvent(_, let description):
+            .callEvent(_, let description), .verificationRequest(let description),
+            .serverNotice(let description):
             return description
+        case .pollEnd:
+            return "Poll ended"
         case .redacted:
             return "This message was deleted"
         case .unableToDecrypt:
@@ -266,7 +270,8 @@ extension ObservableTimelineEvent {
             return body
         case .text, .emote, .notice, .audio, .file,
             .location, .liveLocation, .sticker, .poll, .state,
-            .profileChange, .callEvent, .redacted, .unableToDecrypt, .unknown:
+            .profileChange, .callEvent, .pollEnd, .verificationRequest,
+            .serverNotice, .redacted, .unableToDecrypt, .unknown:
             return nil
         }
     }
@@ -286,7 +291,8 @@ extension MessageKind {
         case .text, .emote, .notice, .image, .video, .audio, .file:
             return false
         case .location, .liveLocation, .sticker, .poll, .state,
-            .profileChange, .callEvent, .redacted, .unableToDecrypt, .unknown:
+            .profileChange, .callEvent, .pollEnd, .verificationRequest,
+            .serverNotice, .redacted, .unableToDecrypt, .unknown:
             return true
         }
     }

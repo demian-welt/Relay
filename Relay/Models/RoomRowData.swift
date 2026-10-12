@@ -60,7 +60,7 @@ struct RoomRowData: Identifiable, Hashable, Sendable {
             avatarURL: room.presentingAvatarURL?.value,
             canonicalAlias: room.canonicalAlias,
             parentSpaceIds: Set(room.parentSpaceIds.map(\.value)),
-            lastMessage: latest?.messageContent.map(preview),
+            lastMessage: latest.flatMap(latestPreview),
             lastMessageAuthor: sender.map { room.memberDetails[$0]?.displayname ?? $0.value },
             lastMessageTimestamp: latest?.timestamp,
             notificationCount: client?.displayUnreadCount(for: room) ?? room.unreadCount,
@@ -72,6 +72,18 @@ struct RoomRowData: Identifiable, Hashable, Sendable {
             isArchived: room.successorRoomId != nil)
     }
 
+    /// Room-list preview for the newest event: message bodies via msgtype,
+    /// poll questions via the poll block. Anything else has no preview.
+    private static func latestPreview(_ event: MessageEvent) -> String? {
+        if let content = event.messageContent {
+            return preview(for: content)
+        }
+        guard EventType(rawValue: event.type) == .pollStart,
+            let start = event.pollStartContent
+        else { return nil }
+        return start.question.isEmpty ? "Poll" : start.question
+    }
+
     /// Room-list preview text for a message. Media bodies hold the
     /// caption-or-filename, so describe them instead of showing it.
     private static func preview(for content: MessageContent) -> String {
@@ -81,7 +93,10 @@ struct RoomRowData: Identifiable, Hashable, Sendable {
         case .audio: "Sent an audio message"
         case .file: "Sent a file"
         case .location: "Sent a location"
-        case .emote, .notice, .text: previewText(body: content.body, formattedBody: content.formattedBody)
+        case .keyVerificationRequest: "Sent a verification request"
+        case .badEncrypted: "Unable to decrypt a message"
+        case .emote, .notice, .text, .serverNotice, .unknown:
+            previewText(body: content.body, formattedBody: content.formattedBody)
         }
     }
 
