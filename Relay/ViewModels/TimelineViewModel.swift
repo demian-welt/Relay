@@ -96,6 +96,10 @@ final class TimelineViewModel {
 
     /// Cursor toward older history (`GET /messages` `dir=b`).
     private var historyCursor: BatchToken?
+    /// Oldest event kept by a retention trim, when the stored cursor
+    /// can't reach the trimmed range. Back-pagination resumes before it
+    /// via `/context` and then continues from the cursor that returns.
+    private var historyGapEventId: EventId?
     /// Whether older history may exist. True until a page comes back
     /// cursorless.
     private var hasMoreHistory = true
@@ -310,6 +314,11 @@ final class TimelineViewModel {
         firstUnreadMessageId = Self.windowAnchor(
             snapshot: snapshot, storedAnchor: payload.firstUnreadEventId)
         historyCursor = payload.prevBatch.map { BatchToken($0) }
+        historyGapEventId = payload.historyGapEventId.map { EventId(unchecked: $0) }
+        if historyGapEventId != nil {
+            // A trim can land while the room is open; reopen history.
+            hasMoreHistory = true
+        }
     }
 
     /// Request a live refresh, coalescing bursts: rapid revision bumps
@@ -407,9 +416,9 @@ final class TimelineViewModel {
         }
         await refreshLiveNow()
         await refreshTypingUsers()
-        if historyCursor == nil {
-            // No back-pagination cursor stored: the window is the whole
-            // known history.
+        if historyCursor == nil && historyGapEventId == nil {
+            // No back-pagination cursor or trim gap stored: the window
+            // is the whole known history.
             hasMoreHistory = false
         }
         isLoading = false
@@ -451,6 +460,10 @@ final class TimelineViewModel {
         }
         guard !isPaginating, hasMoreHistory else { return }
         guard let messages = client.messageClient else { return }
+        if let anchor = historyGapEventId,
+           await resolveHistoryGap(before: anchor, messages: messages) {
+            return
+        }
         guard let from = historyCursor else {
             hasMoreHistory = false
             return
@@ -474,6 +487,39 @@ final class TimelineViewModel {
         } catch {
             timelineLogger.debug(
                 "History pagination failed room=\(self.roomId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Recover the cursor across a retention-trim gap: `/context` on the
+    /// oldest kept event returns the events just before it plus a fresh
+    /// back cursor, which the writer adopts (clearing the anchor).
+    /// Returns false when the lookup fails, so the caller falls back to
+    /// the stored cursor; that page's `prependHistory` also clears the
+    /// anchor, so a bad anchor (e.g. a local echo) never sticks.
+    private func resolveHistoryGap(before anchor: EventId, messages: MessageClient) async -> Bool {
+        isPaginating = true
+        defer { isPaginating = false }
+        do {
+            // The server splits `limit` around the focus event, so ~50
+            // land before it.
+            let context = try await messages.context(roomID, eventId: anchor, limit: 100)
+            if let writer = client.storeWriter {
+                try await writer.resolveHistoryGap(
+                    context.eventsBefore, roomId: roomID, prevBatch: context.start)
+                windowSize = Self.grownWindowSize(
+                    current: windowSize, fetched: context.eventsBefore.count)
+            }
+            historyGapEventId = nil
+            historyCursor = context.start
+            if context.start == nil {
+                hasMoreHistory = false
+            }
+            await refreshLiveNow()
+            return true
+        } catch {
+            timelineLogger.debug(
+                "History gap recovery failed room=\(self.roomId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 

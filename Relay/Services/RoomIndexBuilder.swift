@@ -24,6 +24,10 @@ struct TimelinePayload: Sendable {
     var sendStates: [EventId: SendState]
     var firstUnreadEventId: String?
     var prevBatch: String?
+    /// Set after a retention trim left `prevBatch` unable to reach the
+    /// trimmed range: back-pagination resumes before this event via
+    /// `/context` instead.
+    var historyGapEventId: String? = nil
 }
 
 /// Background builder for store-backed UI snapshots.
@@ -138,16 +142,19 @@ actor RoomIndexBuilder {
             snapshot: snapshot,
             sendStates: sendStates,
             firstUnreadEventId: marker.firstUnreadEventId,
-            prevBatch: marker.prevBatch)
+            prevBatch: marker.prevBatch,
+            historyGapEventId: marker.historyGapEventId)
     }
 
     /// Marker and pagination-cursor columns for one room (single indexed
     /// row fetch, for detached windows that don't need the event window).
-    func markerSummary(roomId: String) -> (firstUnreadEventId: String?, prevBatch: String?) {
+    func markerSummary(roomId: String) -> (
+        firstUnreadEventId: String?, prevBatch: String?, historyGapEventId: String?
+    ) {
         let id = roomId
         let row = try? context.fetch(FetchDescriptor<SDRoom>(
             predicate: #Predicate { $0.roomId == id })).first
-        return (row?.firstUnreadEventId, row?.prevBatch)
+        return (row?.firstUnreadEventId, row?.prevBatch, row?.historyGapEventId)
     }
 
     // MARK: - Private

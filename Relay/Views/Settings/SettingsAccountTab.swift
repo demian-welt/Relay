@@ -29,6 +29,7 @@ struct SettingsAccountTab: View {
     @State private var showImagePicker = false
     @State private var showLogoutConfirmation = false
     @State private var showClearCacheConfirmation = false
+    @AppStorage(RelayClient.messageRetentionKey) private var keepMessages = MessageRetention.forever
 
     @State private var deviceId: String?
 
@@ -227,6 +228,20 @@ struct SettingsAccountTab: View {
             } header: {
                 Text("Public Rooms")
                 Text("In addition to your homeserver, search these servers for public rooms.")
+            }
+
+            Section {
+                Picker("Keep messages", selection: $keepMessages) {
+                    ForEach(MessageRetention.allCases, id: \.self) { retention in
+                        Text(retention.label).tag(retention)
+                    }
+                }
+                .onChange(of: keepMessages) { _, _ in
+                    Task { await client.trimToRetention() }
+                }
+            } header: {
+                Text("Storage")
+                Text("Older messages are removed from this Mac only. They stay on the server and download again when you scroll back.")
             }
 
             Section("Advanced") {

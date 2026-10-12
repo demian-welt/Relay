@@ -238,6 +238,9 @@ final class RelayClient {
     /// UserDefaults key for the Labs sliding-sync experiment.
     static let slidingSyncLabsKey = "labs.slidingSync"
 
+    /// UserDefaults key for the "Keep messages" retention setting.
+    static let messageRetentionKey = "storage.keepMessages"
+
     var authState: AuthState = .unknown
     var syncState: SyncState = .idle
     var hasLoadedRooms = false
@@ -392,6 +395,8 @@ final class RelayClient {
     private var shareCacheWatchTask: Task<Void, Never>?
     /// Debounces share-cache writes during sync bursts.
     private var shareCacheDebounceTask: Task<Void, Never>?
+    /// Runs the rolling message-retention trim on a daily cadence.
+    private var retentionTask: Task<Void, Never>?
     /// Live `notificationEvents()` subscribers.
     private var notificationContinuations: [AsyncStream<RoomMessageNotification>.Continuation] = []
     /// Newest notified event timestamp (ms) per room ID. Dedupes sync
@@ -2215,6 +2220,44 @@ final class RelayClient {
         }
     }
 
+    // MARK: - Message retention
+
+    /// Run the retention trim now, then once a day. Session teardown
+    /// cancels via `stopTasks()`.
+    private func startRetentionMonitor() {
+        guard client != nil, retentionTask == nil else { return }
+        retentionTask = Task { @MainActor [weak self] in
+            while let self, !Task.isCancelled {
+                await self.trimToRetention()
+                try? await Task.sleep(for: .seconds(24 * 60 * 60))
+            }
+        }
+    }
+
+    /// Trim locally cached events older than the "Keep messages"
+    /// setting. Local only: nothing is deleted on the server, and each
+    /// room keeps its newest messages regardless of age (see
+    /// `MatrixStoreWriter.trimEvents`). No-op for Forever.
+    func trimToRetention() async {
+        let raw = UserDefaults.standard.string(forKey: Self.messageRetentionKey)
+        let retention = raw.flatMap(MessageRetention.init(rawValue:)) ?? .forever
+        guard let cutoff = retention.cutoff(), let writer = storeWriter else { return }
+        do {
+            let trimmed = try await writer.trimEvents(olderThan: cutoff)
+            guard !trimmed.isEmpty else { return }
+            for roomId in trimmed {
+                bumpRevision(roomId)
+            }
+            scheduleRoomCacheRebuild()
+            relayClientLogger.info(
+                "Retention trim (\(retention.rawValue, privacy: .public)) pruned \(trimmed.count) rooms")
+            recordActivity("Trimmed cached messages in \(trimmed.count) rooms")
+        } catch {
+            relayClientLogger.error(
+                "Retention trim failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     /// Donate an outgoing-message intent so the system share sheet
     /// suggests this conversation. Best effort; failures are silent.
     func donateOutgoingInteraction(roomId: String) {
@@ -2538,6 +2581,7 @@ final class RelayClient {
         didFinishStartupSync = true
         startSyncLoop()
         scheduleTokenRefresh()
+        startRetentionMonitor()
     }
 
     /// Freeze the session after the homeserver rejects our token: stop
@@ -2825,6 +2869,8 @@ final class RelayClient {
         shareCacheWatchTask = nil
         shareCacheDebounceTask?.cancel()
         shareCacheDebounceTask = nil
+        retentionTask?.cancel()
+        retentionTask = nil
         keyFetch.stopAll()
         monitor?.cancel()
         monitor = nil
@@ -3163,9 +3209,9 @@ final class RelayClient {
     /// Marker and pagination-cursor columns for a room, fetched off the
     /// main actor. For detached windows that don't need the event window.
     func markerSummary(roomId: RoomId) async -> (
-        firstUnreadEventId: String?, prevBatch: String?
+        firstUnreadEventId: String?, prevBatch: String?, historyGapEventId: String?
     ) {
-        guard let index = roomIndex else { return (nil, nil) }
+        guard let index = roomIndex else { return (nil, nil, nil) }
         return await index.markerSummary(roomId: roomId.value)
     }
 
