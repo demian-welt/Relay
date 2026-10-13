@@ -57,17 +57,24 @@ struct RelayRoomTests {
             roomId: RoomId(unchecked: "!test:example.com"),
             originServerTs: 3_000,
             content: [
-                "m.poll.start": .object([
-                    "kind": .string("m.poll.disclosed"),
+                "m.text": .array([
+                    .object(["body": .string("\(question)\n1. Pizza")]),
+                ]),
+                "m.poll": .object([
+                    "kind": .string("m.disclosed"),
                     "max_selections": .int(1),
                     "answers": .array([
                         .object([
-                            "id": .string("a1"),
-                            "org.matrix.msc1767.text": .string("Pizza"),
+                            "m.id": .string("a1"),
+                            "m.text": .array([
+                                .object(["body": .string("Pizza")]),
+                            ]),
                         ]),
                     ]),
                     "question": .object([
-                        "org.matrix.msc1767.text": .string(question),
+                        "m.text": .array([
+                            .object(["body": .string(question)]),
+                        ]),
                     ]),
                 ]),
             ])
@@ -172,6 +179,19 @@ struct RelayRoomTests {
         #expect(row.lastMessage == "Lunch?")
         #expect(row.lastMessageAuthor == "Alice")
         #expect(row.lastMessageTimestamp != nil)
+    }
+
+    @Test func legacyPollContentDoesNotDecodeAsPoll() {
+        // The pre-tightening wire shape Draupnir's InvalidEventProtection
+        // redacted: a bare-string `m.text` fallback under `m.poll.start`.
+        let data = """
+            {"m.poll.start":{"answers":[{"id":"0","org.matrix.msc1767.text":"Yes"},\
+            {"id":"1","org.matrix.msc1767.text":"No"}],"kind":"m.poll.disclosed",\
+            "max_selections":1,\
+            "question":{"org.matrix.msc1767.text":"This is a test poll"}},\
+            "m.text":"This is a test poll"}
+            """.data(using: .utf8)!
+        #expect((try? JSONDecoder().decode(PollStartContent.self, from: data)) == nil)
     }
 
     @Test func rowMappingMarksSuccessorAsArchived() {
