@@ -66,6 +66,9 @@ struct TimelineView: View {
     @State private var timelineActionsRef = TimelineActions()
     @State private var successorRoomId: String?
     @State private var reactionPickerState = ReactionPickerState()
+    /// The timeline list's frame in global coordinates, used to tell whether
+    /// a reaction target is fully visible when its picker opens.
+    @State private var timelineFrame: CGRect = .zero
     @State private var editLastMessageBox = EditLastMessageBox()
     /// Owns the timeline's scroll position and commands.
     @State private var scroller = TimelineScroller()
@@ -221,6 +224,7 @@ struct TimelineView: View {
                         withAnimation(.easeOut(duration: 0.15)) {
                             reactionPickerState.messageId = messageId
                         }
+                        ensureReactionTargetVisible(messageId: messageId, bubbleFrame: frame)
                     },
                     updateReactionPickerFrame: { [self] messageId, frame in
                         guard messageId == reactionPickerState.messageId else { return }
@@ -356,6 +360,11 @@ struct TimelineView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .coordinateSpace(name: "timeline")
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .global)
+        } action: { frame in
+            timelineFrame = frame
+        }
         .overlay {
             TimelinePaginationOverlay(
                 isLoading: viewModel.isLoading,
@@ -450,6 +459,21 @@ struct TimelineView: View {
             scroller.scrollToRow(id: message.eventId.value)
         }
         highlightedMessageId = eventId
+    }
+
+    /// Scrolls a reaction target into full view when it is partially scrolled
+    /// out at presentation time, so its picker capsule (anchored above the
+    /// bubble) isn't clipped and the dimmed overlay doesn't strand the user
+    /// with no way to scroll to it. Fires once per presentation — the picker's
+    /// frame streaming keeps it anchored during the animated scroll.
+    private func ensureReactionTargetVisible(messageId: String, bubbleFrame: CGRect) {
+        guard timelineFrame != .zero else { return }
+        // Reserve room for the capsule above the bubble (capsule + gap + margin).
+        let reserve: CGFloat = 64
+        let clippedTop = bubbleFrame.minY - reserve < timelineFrame.minY
+        let clippedBottom = bubbleFrame.maxY > timelineFrame.maxY - bottomContentMargin
+        guard clippedTop || clippedBottom else { return }
+        scroller.scrollToRow(id: messageId)
     }
 
     // MARK: - Read Receipts
