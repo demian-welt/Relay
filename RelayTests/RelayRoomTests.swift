@@ -195,6 +195,26 @@ struct RelayRoomTests {
         #expect(RoomRowData.from(room: room, isMuted: false).notificationCount == 4)
     }
 
+    @Test func dmDisplayNamePrefersMemberDisplayname() {
+        // Regression (0.6.5): DM rooms rendered the peer's user ID
+        // instead of their display name.
+        let row = SDRoom(
+            roomId: "!test:example.com",
+            membership: Membership.join.rawValue)
+        let members = [
+            SDRoomMember(
+                roomId: "!test:example.com", userId: "@alice:example.com",
+                membership: Membership.join.rawValue, displayname: "Alice"),
+            SDRoomMember(
+                roomId: "!test:example.com", userId: "@me:example.com",
+                membership: Membership.join.rawValue, displayname: "Me"),
+        ]
+        let room = RelayClient.relayRoom(
+            row: row, members: members,
+            localUser: UserId(unchecked: "@me:example.com"))
+        #expect(room.displayName == "Alice")
+    }
+
     @Test func reactionLookupFindsOwnReaction() {
         let target = EventId(unchecked: "$target")
         let me = UserId(unchecked: "@me:example.com")

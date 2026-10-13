@@ -3169,8 +3169,8 @@ final class RelayClient {
                     isDirect: $0.isDirect))
             })
         room.memberCount = members.count
-        room.displayName = Self.displayName(
-            room: row, memberIds: members.map(\.userId), localUser: localUser?.value)
+        room.displayName = MatrixStoreReader.displayName(
+            room: row, members: members, localUser: localUser?.value)
         // Pinned IDs and alt aliases are JSON blobs on the row.
         let decoder = JSONDecoder()
         if let data = row.pinnedEventIds,
@@ -3184,17 +3184,6 @@ final class RelayClient {
         room.newestEventId = newestEventId
         room.latestMessage = newestMessage
         return room
-    }
-
-    /// Best-effort display name: explicit name, else other members'
-    /// IDs, else the room ID. Mirrors the SDK reader.
-    private static nonisolated func displayName(
-        room: SDRoom, memberIds: [String], localUser: String?
-    ) -> String {
-        if let name = room.name, !name.isEmpty { return name }
-        let others = memberIds.filter { $0 != localUser }
-        if !others.isEmpty { return others.sorted().joined(separator: ", ") }
-        return room.roomId
     }
 
     /// Sort key for the room list: latest message timestamp, else the
