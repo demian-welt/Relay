@@ -407,6 +407,12 @@ final class RelayClient {
     private var loggedInviteRoomIds: Set<String> = []
     /// Left rooms already recorded in the activity feed (same repeat issue).
     private var loggedLeftRoomIds: Set<String> = []
+    /// Last full `/members` refresh per room, throttling mention-list
+    /// refetches so timeline event bursts don't hammer the server.
+    private var fullMembersRefreshAt: [String: Date] = [:]
+    /// Last full member map per room, so throttled callers still overlay
+    /// the complete list while the background cache rebuild catches up.
+    private var fullMembersCache: [String: [UserId: MemberContent]] = [:]
     private let avatarCache = NSCache<NSString, NSImage>()
     private let intentDonation = IntentDonationService()
     private var monitor: NWPathMonitor?
@@ -3212,6 +3218,41 @@ final class RelayClient {
                     displayname: $0.displayname,
                     avatarUrl: $0.avatarUrl))
             })
+    }
+
+    /// Full member map fetched from the server (`GET /rooms/{roomId}/members`).
+    ///
+    /// The store only learns members from sync state deltas, and the initial
+    /// sync uses a lean filter with lazy-loaded members (only members in the
+    /// timeline). Inactive members are therefore absent from
+    /// ``roomMembersMap(roomId:)``, which breaks `@` mention autocomplete.
+    /// This fetches the complete list, merges profiles into the store for
+    /// future offline reads, and returns the full map. Results are throttled
+    /// to one fetch per room every 5 minutes unless `force` is set; throttled
+    /// calls and failures return the last fetched map (nil when never
+    /// fetched) so callers fall back to the cached map.
+    func refreshRoomMembers(roomId: RoomId, force: Bool = false) async -> [UserId: MemberContent]? {
+        if !force, let last = fullMembersRefreshAt[roomId.value],
+           Date().timeIntervalSince(last) < 300 {
+            return fullMembersCache[roomId.value]
+        }
+        guard let client else { return fullMembersCache[roomId.value] }
+        guard let infos = try? await client.rooms.members(roomId) else {
+            return fullMembersCache[roomId.value]
+        }
+        fullMembersRefreshAt[roomId.value] = Date()
+        var full: [UserId: MemberContent] = [:]
+        full.reserveCapacity(infos.count)
+        for info in infos {
+            let userId = UserId(unchecked: info.stateKey)
+            full[userId] = info.content
+        }
+        fullMembersCache[roomId.value] = full
+        if let writer = storeWriter {
+            try? await writer.mergeMemberProfiles(full, roomId: roomId)
+            scheduleRoomCacheRebuild()
+        }
+        return full
     }
 
     /// Live-window payload for a room, fetched off the main actor (see

@@ -168,12 +168,23 @@ final class TimelineViewModel {
     }
 
     /// Members with role details, for mentions and profile taps.
-    /// Members resolve from memory; roles need one small power-levels
-    /// fetch (cached per call site by the view's debounce).
+    /// Starts from the cached store map, then overlays a throttled full
+    /// `/members` refresh: the store only learns members from sync state
+    /// deltas (the initial sync lazy-loads members), so inactive users are
+    /// otherwise missing from `@` autocomplete. Only joined/invited users
+    /// are returned; roles need one small power-levels fetch (cached per
+    /// call site by the view's debounce).
     func roomMembers() async -> [RoomMemberDetails] {
-        let members = client.roomMembersMap(roomId: roomID)
+        var members = client.roomMembersMap(roomId: roomID)
+        if let full = await client.refreshRoomMembers(roomId: roomID) {
+            for (userId, content) in full {
+                members[userId] = content
+            }
+        }
         let powerLevels = await client.roomPowerLevels(roomId: roomID)
-        return members.map { userId, content in
+        return members.filter {
+            $0.value.membership == .join || $0.value.membership == .invite
+        }.map { userId, content in
             let level = powerLevels.map {
                 RoomPermissions.powerLevel(of: userId, in: $0)
             } ?? 0
